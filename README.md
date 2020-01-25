@@ -1,2 +1,7 @@
-# stablecarbon
-Carbon (CUSD) token contract
+# Carbon (CUSD) token contract
+
+**build**
+
+```bash
+eosio-cpp stablecarbon.cpp -o stablecarbon.wasm -abigen
+```
