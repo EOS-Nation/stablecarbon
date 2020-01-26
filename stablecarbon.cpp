@@ -58,7 +58,8 @@ void token::transfer( const name&    from,
    require_auth( from );
 
    // prevent transfer to exchanges
-   if ( to == "dexeoswallet"_n || to == "newdexpublic"_n || to == "yorescusd112"_n ) {
+   if ( to == "thisisbancor"_n || to == "dexeoswallet"_n || to == "newdexpublic"_n || to == "yorescusd112"_n ||
+        from == "thisisbancor"_n || from == "yorescusd112"_n ) {
       check( false, "CUSD transfer action has been disabled for DEX, please wait for official news from https://www.carbon.money or https://t.me/carbon_money");
    }
    // prevent blacklist accounts
