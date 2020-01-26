@@ -1,31 +1,32 @@
 #include "stablecarbon.hpp"
 
-namespace eosio {
-
-void token::create( const name&   issuer,
-                    const asset&  maximum_supply )
+// @action
+void token::swap( const name from, const asset quantity )
 {
-    require_auth( get_self() );
+   require_auth( from );
+   check( quantity.symbol == symbol{"CUSD", 2}, "symbol precision mismatch");
 
-    auto sym = maximum_supply.symbol;
-    check( sym.is_valid(), "invalid symbol name" );
-    check( maximum_supply.is_valid(), "invalid supply");
-    check( maximum_supply.amount > 0, "max-supply must be positive");
+   // assets
+   const symbol USDT = symbol{"USDT", 4};
+   const string memo = "1:1 CUSD/USDT swap";
+   const asset usdt = asset{ quantity.amount * 100, USDT };
 
-    stats statstable( get_self(), sym.code().raw() );
-    auto existing = statstable.find( sym.code().raw() );
-    check( existing == statstable.end(), "token with symbol already exists" );
+   // check if existing USDT balance is available
+   check( token::get_balance( "tethertether"_n, get_self(), USDT.code()) > usdt, "please wait until USDT balance is refilled, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
 
-    statstable.emplace( get_self(), [&]( auto& s ) {
-       s.supply.symbol = maximum_supply.symbol;
-       s.max_supply    = maximum_supply;
-       s.issuer        = issuer;
-    });
+   // static actioncs
+   token::burn_action burn( get_self(), { get_self(), "active"_n });
+   token::transfer_action transfer( "tethertether"_n, { get_self(), "active"_n });
+
+   // transfer USDT at 1:1
+   burn.send( from, quantity, memo );
+   transfer.send( get_self(), from, usdt, memo );
 }
 
-void token::burn( const name from, const asset& quantity, const string& memo )
+// @action
+void token::burn( const name from, const asset quantity, const string memo )
 {
-    require_auth( from );
+    check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
 
     auto sym = quantity.symbol;
     check( sym.is_valid(), "invalid symbol name" );
@@ -48,83 +49,45 @@ void token::burn( const name from, const asset& quantity, const string& memo )
     sub_balance( from, quantity );
 }
 
+// @action
 void token::transfer( const name&    from,
                       const name&    to,
                       const asset&   quantity,
                       const string&  memo )
 {
-    if ( to != "pipepipepipe"_n ) {
-       check( false, "CUSD transfer action has been temporarily disabled, please wait for official news from https://www.carbon.money");
-    }
+   require_auth( from );
 
-    check( from != to, "cannot transfer to self" );
-    check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
-    check( is_account( to ), "to account does not exist");
-
-    auto sym = quantity.symbol.code();
-    stats statstable( get_self(), sym.raw() );
-    const auto& st = statstable.get( sym.raw() );
-
-    require_recipient( from );
-    require_recipient( to );
-
-    check( quantity.is_valid(), "invalid quantity" );
-    check( quantity.amount > 0, "must transfer positive quantity" );
-    check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
-    check( memo.size() <= 256, "memo has more than 256 bytes" );
-
-    auto payer = get_self();
-
-    sub_balance( from, quantity );
-    add_balance( to, quantity, payer );
-}
-
-void token::sub_balance( const name& owner, const asset& value ) {
-   accounts from_acnts( get_self(), owner.value );
-
-   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
-   check( from.balance.amount >= value.amount, "overdrawn balance" );
-
-   from_acnts.modify( from, get_self(), [&]( auto& a ) {
-         a.balance -= value;
-      });
-}
-
-void token::add_balance( const name& owner, const asset& value, const name& ram_payer )
-{
-   accounts to_acnts( get_self(), owner.value );
-   auto to = to_acnts.find( value.symbol.code().raw() );
-   if( to == to_acnts.end() ) {
-      to_acnts.emplace( get_self(), [&]( auto& a ){
-        a.balance = value;
-      });
-   } else {
-      to_acnts.modify( to, get_self(), [&]( auto& a ) {
-        a.balance += value;
-      });
+   // prevent transfer to exchanges
+   if ( to == "dexeoswallet"_n || to == "newdexpublic"_n || to == "yorescusd112"_n ) {
+      check( false, "CUSD transfer action has been disabled for DEX, please wait for official news from https://www.carbon.money or https://t.me/carbon_money");
    }
-}
-
-void token::open( const name& owner, const symbol& symbol, const name& ram_payer )
-{
-   require_auth( ram_payer );
-
-   check( is_account( owner ), "owner account does not exist" );
-
-   auto sym_code_raw = symbol.code().raw();
-   stats statstable( get_self(), sym_code_raw );
-   const auto& st = statstable.get( sym_code_raw, "symbol does not exist" );
-   check( st.supply.symbol == symbol, "symbol precision mismatch" );
-
-   accounts acnts( get_self(), owner.value );
-   auto it = acnts.find( sym_code_raw );
-   if( it == acnts.end() ) {
-      acnts.emplace( ram_payer, [&]( auto& a ){
-        a.balance = asset{0, symbol};
-      });
+   // prevent blacklist accounts
+   if ( from == "stringbeanzz"_n ) {
+      check( false, "CUSD transfer action has been disabled, please wait for official news from https://www.carbon.money or https://t.me/carbon_money");
    }
+
+   check( from != to, "cannot transfer to self" );
+   check( is_account( to ), "to account does not exist");
+
+   auto sym = quantity.symbol.code();
+   stats statstable( get_self(), sym.raw() );
+   const auto& st = statstable.get( sym.raw() );
+
+   require_recipient( from );
+   require_recipient( to );
+
+   check( quantity.is_valid(), "invalid quantity" );
+   check( quantity.amount > 0, "must transfer positive quantity" );
+   check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
+   check( memo.size() <= 256, "memo has more than 256 bytes" );
+
+   auto payer = get_self();
+
+   sub_balance( from, quantity );
+   add_balance( to, quantity, payer );
 }
 
+// @action
 void token::close( const name& owner, const symbol& symbol )
 {
    require_auth( owner );
@@ -135,4 +98,29 @@ void token::close( const name& owner, const symbol& symbol )
    acnts.erase( it );
 }
 
-} /// namespace eosio
+void token::sub_balance( const name& owner, const asset& value ) {
+   accounts from_acnts( get_self(), owner.value );
+
+   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
+   check( from.balance.amount >= value.amount, "overdrawn balance" );
+
+   from_acnts.modify( from, get_self(), [&]( auto& a ) {
+      a.balance -= value;
+   });
+}
+
+void token::add_balance( const name& owner, const asset& value, const name& ram_payer )
+{
+   accounts to_acnts( get_self(), owner.value );
+   auto to = to_acnts.find( value.symbol.code().raw() );
+   if( to == to_acnts.end() ) {
+      to_acnts.emplace( get_self(), [&]( auto& a ){
+         a.balance = value;
+      });
+   } else {
+      to_acnts.modify( to, get_self(), [&]( auto& a ) {
+         a.balance += value;
+      });
+   }
+}
+
