@@ -3,7 +3,7 @@
 // @action
 void token::swap( const name from, const asset quantity )
 {
-   require_auth( from );
+   check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
    check( quantity.symbol == symbol{"CUSD", 2}, "symbol precision mismatch");
 
    // assets
@@ -26,27 +26,27 @@ void token::swap( const name from, const asset quantity )
 // @action
 void token::burn( const name from, const asset quantity, const string memo )
 {
-    check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
+   check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
 
-    auto sym = quantity.symbol;
-    check( sym.is_valid(), "invalid symbol name" );
-    check( memo.size() <= 256, "memo has more than 256 bytes" );
+   auto sym = quantity.symbol;
+   check( sym.is_valid(), "invalid symbol name" );
+   check( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    stats statstable( get_self(), sym.code().raw() );
-    auto existing = statstable.find( sym.code().raw() );
-    check( existing != statstable.end(), "token with symbol does not exist" );
-    const auto& st = *existing;
+   stats statstable( get_self(), sym.code().raw() );
+   auto existing = statstable.find( sym.code().raw() );
+   check( existing != statstable.end(), "token with symbol does not exist" );
+   const auto& st = *existing;
 
-    check( quantity.is_valid(), "invalid quantity" );
-    check( quantity.amount > 0, "must retire positive quantity" );
+   check( quantity.is_valid(), "invalid quantity" );
+   check( quantity.amount > 0, "must retire positive quantity" );
 
-    check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
+   check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
 
-    statstable.modify( st, same_payer, [&]( auto& s ) {
-       s.supply -= quantity;
-    });
+   statstable.modify( st, same_payer, [&]( auto& s ) {
+      s.supply -= quantity;
+   });
 
-    sub_balance( from, quantity );
+   sub_balance( from, quantity );
 }
 
 // @action
@@ -90,7 +90,6 @@ void token::transfer( const name&    from,
 // @action
 void token::close( const name& owner, const symbol& symbol )
 {
-   require_auth( owner );
    accounts acnts( get_self(), owner.value );
    auto it = acnts.find( symbol.code().raw() );
    check( it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect." );
@@ -106,6 +105,7 @@ void token::sub_balance( const name& owner, const asset& value ) {
 
    from_acnts.modify( from, get_self(), [&]( auto& a ) {
       a.balance -= value;
+      if ( a.balance.amount <= 0 ) from_acnts.erase( from );
    });
 }
 
