@@ -17,9 +17,6 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
       void burn( const name from, const asset quantity, const string memo );
 
       [[eosio::action]]
-      void swap( const name from, const asset quantity );
-
-      [[eosio::action]]
       void transfer( const name&    from,
                      const name&    to,
                      const asset&   quantity,
@@ -65,4 +62,5 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
 
       void sub_balance( const name& owner, const asset& value );
       void add_balance( const name& owner, const asset& value, const name& ram_payer );
+      void swap( const eosio::name from, const eosio::name to, const eosio::asset quantity);
 };
