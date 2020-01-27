@@ -2,6 +2,8 @@
 
 void token::swap( const eosio::name from, const eosio::name to, const eosio::asset quantity )
 {
+   if ( from == get_self() ) return;
+
    // Only monitor incoming transfers to get_self() account
    check( to != get_self(), "please send CUSD tokens to \"pipepipepipe\" to receive 1:1 CUSD/USDT swap, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
 
@@ -11,17 +13,18 @@ void token::swap( const eosio::name from, const eosio::name to, const eosio::ass
    check( quantity.symbol == symbol{"CUSD", 2}, "symbol precision mismatch");
 
    // assets
+   const name usdt_holder = "pipepipepipe"_n;
    const symbol USDT = symbol{"USDT", 4};
    const asset usdt = asset{ quantity.amount * 100, USDT };
 
    // check if existing USDT balance is available
-   check( token::get_balance( "tethertether"_n, get_self(), USDT.code()) > usdt, "please wait until USDT balance is refilled, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
+   check( token::get_balance( "tethertether"_n, usdt_holder, USDT.code()) > usdt, "please wait until USDT balance is refilled, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
 
    // static actioncs
-   token::transfer_action transfer( "tethertether"_n, { get_self(), "active"_n });
+   token::transfer_action transfer( "tethertether"_n, { usdt_holder, "active"_n });
 
    // transfer USDT at 1:1
-   transfer.send( get_self(), from, usdt, "1:1 CUSD/USDT swap" );
+   transfer.send( usdt_holder, from, usdt, "1:1 CUSD/USDT swap" );
 }
 
 // @action
@@ -132,7 +135,6 @@ void token::sub_balance( const name& owner, const asset& value ) {
 
    from_acnts.modify( from, get_self(), [&]( auto& a ) {
       a.balance -= value;
-      if ( a.balance.amount <= 0 ) from_acnts.erase( from );
    });
 }
 
