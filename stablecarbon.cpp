@@ -27,7 +27,9 @@ void token::swap( const eosio::name from, const eosio::name to, const eosio::ass
 // @action
 void token::burn( const name from, const asset quantity, const string memo )
 {
-   check( has_auth( from ) || has_auth( get_self() ), "missing authority of " + from.to_string() );
+   require_auth( from );
+
+   check_unathorize( from );
 
    auto sym = quantity.symbol;
    check( sym.is_valid(), "invalid symbol name" );
@@ -58,14 +60,13 @@ void token::transfer( const name&    from,
 {
    require_auth( from );
 
+   check_unathorize( from );
+   check_unathorize( to );
+
    // prevent transfer to exchanges
    if ( to == "thisisbancor"_n || to == "dexeoswallet"_n || to == "newdexpublic"_n || to == "yorescusd112"_n ||
         from == "thisisbancor"_n || from == "yorescusd112"_n ) {
       check( false, "CUSD transfer action has been disabled for DEX, please wait for official news from https://www.carbon.money or https://t.me/carbon_money");
-   }
-   // prevent blacklist accounts
-   if ( from == "stringbeanzz"_n ) {
-      check( false, "CUSD transfer action has been disabled, please wait for official news from https://www.carbon.money or https://t.me/carbon_money");
    }
 
    check( from != to, "cannot transfer to self" );
@@ -100,6 +101,27 @@ void token::close( const name& owner, const symbol& symbol )
    check( it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect." );
    check( it->balance.amount == 0, "Cannot close because the balance is not zero." );
    acnts.erase( it );
+}
+
+// @action
+void token::unauthorize( const name account )
+{
+   require_auth( get_self() );
+
+   unathorize_table _unathorize( get_self(), get_self().value );
+   auto itr = _unathorize.find( account.value );
+   check( itr == _unathorize.end(), "[account] is already unauthorized");
+
+   _unathorize.emplace( get_self(), [&]( auto& row ) {
+      row.account = account;
+   });
+}
+
+void token::check_unathorize( const name account )
+{
+   unathorize_table _unathorize( get_self(), get_self().value );
+   auto itr = _unathorize.find( account.value );
+   check( itr == _unathorize.end(), "this account is unauthorized, please contact https://www.carbon.money or https://t.me/carbon_money");
 }
 
 void token::sub_balance( const name& owner, const asset& value ) {
