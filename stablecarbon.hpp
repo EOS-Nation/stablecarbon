@@ -52,7 +52,7 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
          uint64_t primary_key()const { return balance.symbol.code().raw(); }
       };
 
-      struct [[eosio::table]] unathorize_row {
+      struct [[eosio::table]] unauthorize_row {
          name    account;
 
          uint64_t primary_key() const { return account.value; }
@@ -66,12 +66,12 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
          uint64_t primary_key()const { return supply.symbol.code().raw(); }
       };
 
-      typedef eosio::multi_index< "unathorize"_n, unathorize_row > unathorize_table;
+      typedef eosio::multi_index< "unauthorize"_n, unauthorize_row > unauthorize_table;
       typedef eosio::multi_index< "accounts"_n, account > accounts;
       typedef eosio::multi_index< "stat"_n, currency_stats > stats;
 
       void sub_balance( const name& owner, const asset& value );
       void add_balance( const name& owner, const asset& value, const name& ram_payer );
       void swap( const eosio::name from, const eosio::name to, const eosio::asset quantity);
-      void check_unathorize( const name account );
+      void check_unauthorize( const name account );
 };

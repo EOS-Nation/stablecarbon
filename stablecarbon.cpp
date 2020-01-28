@@ -32,7 +32,7 @@ void token::burn( const name from, const asset quantity, const string memo )
 {
    require_auth( from );
 
-   check_unathorize( from );
+   check_unauthorize( from );
 
    auto sym = quantity.symbol;
    check( sym.is_valid(), "invalid symbol name" );
@@ -63,8 +63,8 @@ void token::transfer( const name&    from,
 {
    require_auth( from );
 
-   check_unathorize( from );
-   check_unathorize( to );
+   check_unauthorize( from );
+   check_unauthorize( to );
 
    // prevent transfer to exchanges
    if ( to == "thisisbancor"_n || to == "dexeoswallet"_n || to == "newdexpublic"_n || to == "yorescusd112"_n ||
@@ -111,20 +111,20 @@ void token::unauthorize( const name account )
 {
    require_auth( get_self() );
 
-   unathorize_table _unathorize( get_self(), get_self().value );
-   auto itr = _unathorize.find( account.value );
-   check( itr == _unathorize.end(), "[account] is already unauthorized");
+   unauthorize_table _unauthorize( get_self(), get_self().value );
+   auto itr = _unauthorize.find( account.value );
+   check( itr == _unauthorize.end(), "[account] is already unauthorized");
 
-   _unathorize.emplace( get_self(), [&]( auto& row ) {
+   _unauthorize.emplace( get_self(), [&]( auto& row ) {
       row.account = account;
    });
 }
 
-void token::check_unathorize( const name account )
+void token::check_unauthorize( const name account )
 {
-   unathorize_table _unathorize( get_self(), get_self().value );
-   auto itr = _unathorize.find( account.value );
-   check( itr == _unathorize.end(), "this account is unauthorized, please contact https://www.carbon.money or https://t.me/carbon_money");
+   unauthorize_table _unauthorize( get_self(), get_self().value );
+   auto itr = _unauthorize.find( account.value );
+   check( itr == _unauthorize.end(), "this account is unauthorized, please contact https://www.carbon.money or https://t.me/carbon_money");
 }
 
 void token::sub_balance( const name& owner, const asset& value ) {
