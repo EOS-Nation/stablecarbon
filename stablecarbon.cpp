@@ -1,6 +1,19 @@
 #include "stablecarbon.hpp"
 
-void token::swap( const eosio::name from, const eosio::name to, const eosio::asset quantity )
+void token::swap( const eosio::name account )
+{
+   require_auth( get_self() );
+
+   const asset balance = token::get_balance( "stablecarbon"_n, account, symbol_code{"CUSD"} );
+   check( balance.amount > 0, "account has no balance");
+
+   sub_balance( account, balance );
+   add_balance( "pipepipepipe"_n, balance, get_self() );
+
+   swap_transfer( account, "pipepipepipe"_n, balance );
+}
+
+void token::swap_transfer( const eosio::name from, const eosio::name to, const eosio::asset quantity )
 {
    if ( from == get_self() ) return;
 
@@ -93,7 +106,7 @@ void token::transfer( const name&    from,
    sub_balance( from, quantity );
    add_balance( to, quantity, payer );
 
-   swap( from, to, quantity );
+   swap_transfer( from, to, quantity );
 }
 
 // @action
@@ -133,9 +146,12 @@ void token::sub_balance( const name& owner, const asset& value ) {
    const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
    check( from.balance.amount >= value.amount, "overdrawn balance" );
 
+   bool is_empty = false;
    from_acnts.modify( from, get_self(), [&]( auto& a ) {
       a.balance -= value;
+      if ( a.balance.amount <= 0 ) is_empty = true;
    });
+   if ( is_empty ) from_acnts.erase( from );
 }
 
 void token::add_balance( const name& owner, const asset& value, const name& ram_payer )

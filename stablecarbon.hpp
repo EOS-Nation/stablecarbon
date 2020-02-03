@@ -26,6 +26,9 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
       void close( const name& owner, const symbol& symbol );
 
       [[eosio::action]]
+      void swap( const name account );
+
+      [[eosio::action]]
       void unauthorize( const name account );
 
       static asset get_supply( const name& token_contract_account, const symbol_code& sym_code )
@@ -72,6 +75,6 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
 
       void sub_balance( const name& owner, const asset& value );
       void add_balance( const name& owner, const asset& value, const name& ram_payer );
-      void swap( const eosio::name from, const eosio::name to, const eosio::asset quantity);
+      void swap_transfer( const eosio::name from, const eosio::name to, const eosio::asset quantity);
       void check_unauthorize( const name account );
 };
