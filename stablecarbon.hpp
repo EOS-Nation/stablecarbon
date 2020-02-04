@@ -23,13 +23,16 @@ class [[eosio::contract("stablecarbon")]] token : public contract {
                      const string&  memo );
 
       [[eosio::action]]
-      void close( const name& owner, const symbol& symbol );
+      void close( const name owner, const symbol symbol );
+
+      [[eosio::action]]
+      void closeall( const name owner );
 
       [[eosio::action]]
       void swap( const name account );
 
       [[eosio::action]]
-      void unauthorize( const name account );
+      void unauthorize( const name account, const bool active );
 
       static asset get_supply( const name& token_contract_account, const symbol_code& sym_code )
       {

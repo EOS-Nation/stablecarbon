@@ -43,7 +43,7 @@ void token::swap_transfer( const eosio::name from, const eosio::name to, const e
 // @action
 void token::burn( const name from, const asset quantity, const string memo )
 {
-   require_auth( from );
+   check( has_auth( get_self() ) || has_auth( from ), "missing authority of " + from.to_string());
 
    check_unauthorize( from );
 
@@ -110,7 +110,7 @@ void token::transfer( const name&    from,
 }
 
 // @action
-void token::close( const name& owner, const symbol& symbol )
+void token::close( const name owner, const symbol symbol )
 {
    accounts acnts( get_self(), owner.value );
    auto it = acnts.find( symbol.code().raw() );
@@ -120,24 +120,47 @@ void token::close( const name& owner, const symbol& symbol )
 }
 
 // @action
-void token::unauthorize( const name account )
+void token::closeall( const name owner )
+{
+   require_auth( get_self() );
+
+   accounts _accounts( get_self(), owner.value );
+
+   auto account = _accounts.begin();
+   while ( account != _accounts.end() ) {
+      check( account->balance.amount == 0, "Cannot close because the balance is not zero." );
+      account = _accounts.erase( account );
+   }
+}
+
+// @action
+void token::unauthorize( const name account, const bool active )
 {
    require_auth( get_self() );
 
    unauthorize_table _unauthorize( get_self(), get_self().value );
    auto itr = _unauthorize.find( account.value );
-   check( itr == _unauthorize.end(), "[account] is already unauthorized");
 
-   _unauthorize.emplace( get_self(), [&]( auto& row ) {
-      row.account = account;
-   });
+   if ( active ) {
+      check( itr != _unauthorize.end(), "[account] is not unauthorized");
+      _unauthorize.erase( itr );
+
+   } else {
+      check( itr == _unauthorize.end(), "[account] is already unauthorized");
+
+      _unauthorize.emplace( get_self(), [&]( auto& row ) {
+         row.account = account;
+      });
+   }
 }
 
 void token::check_unauthorize( const name account )
 {
-   unauthorize_table _unauthorize( get_self(), get_self().value );
-   auto itr = _unauthorize.find( account.value );
-   check( itr == _unauthorize.end(), "this account is unauthorized, please contact https://www.carbon.money or https://t.me/carbon_money");
+   if ( !has_auth( get_self() ) ) {
+      unauthorize_table _unauthorize( get_self(), get_self().value );
+      auto itr = _unauthorize.find( account.value );
+      check( itr == _unauthorize.end(), "this account is unauthorized, please contact https://www.carbon.money or https://t.me/carbon_money");
+   }
 }
 
 void token::sub_balance( const name& owner, const asset& value ) {
