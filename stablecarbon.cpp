@@ -31,7 +31,7 @@ void token::swap_transfer( const eosio::name from, const eosio::name to, const e
    const asset usdt = asset{ quantity.amount * 100, USDT };
 
    // check if existing USDT balance is available
-   check( token::get_balance( "tethertether"_n, usdt_holder, USDT.code()) > usdt, "please wait until USDT balance is refilled, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
+   check( token::get_balance( "tethertether"_n, usdt_holder, USDT.code()) >= usdt, "please wait until USDT balance is refilled, for further questions please contact https://www.carbon.money or https://t.me/carbon_money");
 
    // static actioncs
    token::transfer_action transfer( "tethertether"_n, { usdt_holder, "active"_n });
